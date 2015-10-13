@@ -994,12 +994,73 @@ func unmarshalRequest(r *http.Request, marshalers map[string]ContentMarshaler) (
 
 func marshalResponse(resp interface{}, w http.ResponseWriter, status int, r *http.Request, marshalers map[string]ContentMarshaler) error {
 	marshaler, contentType := selectContentMarshaler(r, marshalers)
-	result, err := marshaler.Marshal(resp)
+	result, err := marshaler.Marshal(filterSparseFields(resp, r))
 	if err != nil {
 		return err
 	}
 	writeResult(w, result, status, contentType)
 	return nil
+}
+
+func filterSparseFields(resp interface{}, r *http.Request) interface{} {
+	query := r.URL.Query()
+	if len(query) < 1 {
+		return resp
+	}
+
+	if content, ok := resp.(map[string]interface{}); ok {
+
+		// single entry in data
+		if data, ok := content["data"].(map[string]interface{}); ok {
+			replaceAttributes(&query, &data)
+		}
+
+		// data can be a slice too
+		if datas, ok := content["data"].([]map[string]interface{}); ok {
+			for index, data := range datas {
+				replaceAttributes(&query, &data)
+				datas[index] = data
+			}
+		}
+
+		// included slice
+		if included, ok := content["included"].([]map[string]interface{}); ok {
+			for index, include := range included {
+				replaceAttributes(&query, &include)
+				included[index] = include
+			}
+		}
+	}
+	return resp
+}
+
+func extractFields(query *url.Values, name string) []string {
+	fields := query.Get(fmt.Sprintf("fields[%s]", name))
+	if fields == "" {
+		return []string{}
+	}
+
+	return strings.Split(fields, ",")
+}
+
+func filterAttributes(attributes map[string]interface{}, fields []string) map[string]interface{} {
+	filteredAttributes := map[string]interface{}{}
+	for _, field := range fields {
+		if attribute, ok := attributes[field]; ok {
+			filteredAttributes[field] = attribute
+		}
+	}
+
+	return filteredAttributes
+}
+
+func replaceAttributes(query *url.Values, entry *map[string]interface{}) {
+	fields := extractFields(query, (*entry)["type"].(string))
+	if len(fields) > 0 {
+		if attributes, ok := (*entry)["attributes"]; ok {
+			(*entry)["attributes"] = filterAttributes(attributes.(map[string]interface{}), fields)
+		}
+	}
 }
 
 func selectContentMarshaler(r *http.Request, marshalers map[string]ContentMarshaler) (marshaler ContentMarshaler, contentType string) {
