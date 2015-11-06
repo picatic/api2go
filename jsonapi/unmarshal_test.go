@@ -2,6 +2,9 @@ package jsonapi
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"time"
 
 	"gopkg.in/guregu/null.v2/zero"
@@ -593,13 +596,15 @@ var _ = Describe("Unmarshal", func() {
 
 	Context("SQL Null-Types", func() {
 		var nullPosts []SQLNullPost
+		var timeZero time.Time
 
 		BeforeEach(func() {
 			nullPosts = []SQLNullPost{}
+			timeZero = time.Time{}
 		})
 
-		It("correctly unmarshal String, Int64 and Float64", func() {
-			err := UnmarshalFromJSON([]byte(`
+		It("correctly unmarshals String, Int64, Float64 and Time", func() {
+			err := UnmarshalFromJSON([]byte(fmt.Sprintf(`
 				{
 					"data": {
 						"id": "theID",
@@ -608,11 +613,12 @@ var _ = Describe("Unmarshal", func() {
 							"title": "Test",
 							"likes": 666,
 							"rating": 66.66,
-							"isCool": true
+							"isCool": true,
+							"today": "%v"
 						}
 					}
 				}
-			`), &nullPosts)
+				`, timeZero.Format(time.RFC3339))), &nullPosts)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(nullPosts).To(HaveLen(1))
 			Expect(nullPosts[0]).To(Equal(SQLNullPost{
@@ -621,7 +627,81 @@ var _ = Describe("Unmarshal", func() {
 				Likes:  zero.IntFrom(666),
 				Rating: zero.FloatFrom(66.66),
 				IsCool: zero.BoolFrom(true),
+				Today:  zero.TimeFrom(timeZero.UTC()),
 			}))
 		})
+
+		It("correctly unmarshals Null String, Int64, Float64 and Time", func() {
+			err := UnmarshalFromJSON([]byte(`
+				{
+					"data": {
+						"id": "theID",
+						"type": "sqlNullPosts",
+						"attributes": {
+							"title": null,
+							"likes": null,
+							"rating": null,
+							"isCool": null,
+							"today": null
+						}
+					}
+				}
+				`), &nullPosts)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(nullPosts).To(HaveLen(1))
+			Expect(nullPosts[0]).To(Equal(SQLNullPost{
+				ID:     "theID",
+				Title:  zero.StringFromPtr(nil),
+				Likes:  zero.IntFromPtr(nil),
+				Rating: zero.FloatFromPtr(nil),
+				IsCool: zero.BoolFromPtr(nil),
+				Today:  zero.TimeFromPtr(nil),
+			}))
+		})
+
+		It("overwrites existing data with nulls when marshaling", func() {
+			target := SQLNullPost{
+				ID:     "newID",
+				Title:  zero.StringFrom("TestTitle"),
+				Likes:  zero.IntFrom(11),
+				IsCool: zero.BoolFrom(true),
+				Rating: zero.FloatFrom(4.5),
+				Today:  zero.TimeFrom(time.Now().UTC())}
+			nullPosts = append(nullPosts, target)
+			Expect(nullPosts).To(HaveLen(1))
+			ctx := map[string]interface{}{}
+			err := json.Unmarshal([]byte(`
+				{
+					"data": {
+						"id": "newID",
+						"type": "sqlNullPosts",
+						"attributes": {
+							"title": null,
+							"likes": null,
+							"rating": null,
+							"isCool": null,
+							"today": null
+						}
+					}
+				}
+				`), &ctx)
+			Expect(err).ToNot(HaveOccurred())
+			// This follows the technique used in api.go
+			updatingObjs := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(target)), 1, 1)
+			updatingObjs.Index(0).Set(reflect.ValueOf(target))
+			err = UnmarshalInto(ctx, reflect.TypeOf(target), &updatingObjs)
+			Expect(err).ToNot(HaveOccurred())
+			updatingObj := updatingObjs.Index(0).Interface()
+			Expect(updatingObjs.Len()).To(Equal(1))
+			Expect(updatingObj).To(Equal(SQLNullPost{
+				ID:     "newID",
+				Title:  zero.StringFromPtr(nil),
+				Likes:  zero.IntFromPtr(nil),
+				Rating: zero.FloatFromPtr(nil),
+				IsCool: zero.BoolFromPtr(nil),
+				Today:  zero.TimeFromPtr(nil),
+			}))
+		})
+
 	})
 })

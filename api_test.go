@@ -846,6 +846,15 @@ var _ = Describe("RestHandler", func() {
 				Expect(target.Value).To(Equal(null.FloatFrom(2)))
 			})
 
+			It("UPDATEs correctly using null.* values", func() {
+				target := source.posts["1"]
+				target.Value = null.FloatFrom(2)
+				doRequest(`{"data": {"id": "1", "attributes": {"title": "New Title", "value": null}, "type": "posts"}}`, "/v1/posts/1", "PATCH")
+				Expect(source.posts["1"].Title).To(Equal("New Title"))
+				Expect(target.Title).To(Equal("New Title"))
+				Expect(target.Value).To(Equal(null.FloatFromPtr(nil)))
+			})
+
 			It("Patch updates to-one relationships", func() {
 				target := source.posts["1"]
 				doRequest(`{
@@ -1761,6 +1770,34 @@ var _ = Describe("RestHandler", func() {
 					}
 				]
 			}`))
+		})
+
+		It("Summarize all invalid field query parameters as error", func() {
+			req, err := http.NewRequest("GET", "/posts?fields[posts]=title,nonexistent&fields[users]=name,title,fluffy,pink", nil)
+			Expect(err).ToNot(HaveOccurred())
+			api.Handler().ServeHTTP(rec, req)
+			Expect(rec.Code).To(Equal(http.StatusBadRequest))
+			error := HTTPError{}
+			err = json.Unmarshal(rec.Body.Bytes(), &error)
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedError := func(field, objType string) Error {
+				return Error{
+					Status: "Bad Request",
+					Code:   codeInvalidQueryFields,
+					Title:  fmt.Sprintf(`Field "%s" does not exist for type "%s"`, field, objType),
+					Detail: "Please make sure you do only request existing fields",
+					Source: &ErrorSource{
+						Parameter: fmt.Sprintf("fields[%s]", objType),
+					},
+				}
+			}
+
+			Expect(error.Errors).To(HaveLen(4))
+			Expect(error.Errors).To(ContainElement(expectedError("nonexistent", "posts")))
+			Expect(error.Errors).To(ContainElement(expectedError("title", "users")))
+			Expect(error.Errors).To(ContainElement(expectedError("fluffy", "users")))
+			Expect(error.Errors).To(ContainElement(expectedError("pink", "users")))
 		})
 	})
 })
