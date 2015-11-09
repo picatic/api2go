@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	codeInvalidQueryFields  = "API2GO_INVALID_FIELD_QUERY_PARAM"
-	defaultContentTypHeader = "application/vnd.api+json"
+	codeInvalidQueryFields   = "API2GO_INVALID_FIELD_QUERY_PARAM"
+	defaultContentTypeHeader = "application/vnd.api+json; charset=utf-8"
 )
 
 var queryFieldsRegex = regexp.MustCompile(`^fields\[(\w+)\]$`)
@@ -1127,7 +1127,7 @@ func selectContentMarshaler(r *http.Request, marshalers map[string]ContentMarsha
 			contentTypes = append(contentTypes, ct)
 		}
 
-		contentType = httputil.NegotiateContentType(r, contentTypes, defaultContentTypHeader)
+		contentType = httputil.NegotiateContentType(r, contentTypes, defaultContentTypeHeader)
 		marshaler = marshalers[contentType]
 	} else if contentTypes, found := r.Header["Content-Type"]; found {
 		contentType = contentTypes[0]
@@ -1135,7 +1135,7 @@ func selectContentMarshaler(r *http.Request, marshalers map[string]ContentMarsha
 	}
 
 	if marshaler == nil {
-		contentType = defaultContentTypHeader
+		contentType = defaultContentTypeHeader
 		marshaler = JSONContentMarshaler{}
 	}
 
