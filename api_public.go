@@ -16,7 +16,7 @@ type HandlerFunc func(APIContexter, http.ResponseWriter, *http.Request)
 // Currently this means handling application/vnd.api+json content type bodies
 // using the standard encoding/json package.
 var DefaultContentMarshalers = map[string]ContentMarshaler{
-	defaultContentTypHeader: JSONContentMarshaler{},
+	defaultContentTypeHeader: JSONContentMarshaler{},
 }
 
 // API is a REST JSONAPI.
