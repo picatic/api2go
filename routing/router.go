@@ -1,10 +1,14 @@
 package routing
 
-import "net/http"
+import (
+	"net/http"
+
+	"golang.org/x/net/context"
+)
 
 // HandlerFunc must contain all params from the route
 // in the form key,value
-type HandlerFunc func(w http.ResponseWriter, r *http.Request, params map[string]string)
+type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request)
 
 // Routeable allows drop in replacement for api2go's router
 // by default, we are using julienschmidt/httprouter

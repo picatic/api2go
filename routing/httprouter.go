@@ -3,26 +3,18 @@ package routing
 import (
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/rs/xhandler"
+	"github.com/rs/xmux"
 )
 
 // HTTPRouter default router implementation for api2go
 type HTTPRouter struct {
-	router *httprouter.Router
+	router *xmux.Mux
 }
 
 // Handle each method like before and wrap them into julienschmidt handler func style
-func (h HTTPRouter) Handle(protocol, route string, handler HandlerFunc) {
-	wrappedCallback := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		params := map[string]string{}
-		for _, p := range ps {
-			params[p.Key] = p.Value
-		}
-
-		handler(w, r, params)
-	}
-
-	h.router.Handle(protocol, route, wrappedCallback)
+func (h HTTPRouter) Handle(protocol, route string, handler xhandler.HandlerFuncC) {
+	h.router.Handle(protocol, route, handler)
 }
 
 // Handler returns the router
