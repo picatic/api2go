@@ -5,21 +5,28 @@ import (
 
 	"github.com/rs/xhandler"
 	"github.com/rs/xmux"
+	"golang.org/x/net/context"
 )
 
 // HTTPRouter default router implementation for api2go
 type HTTPRouter struct {
-	router *xmux.Mux
+	rootContext context.Context
+	router      *xmux.Mux
 }
 
 // Handle each method like before and wrap them into julienschmidt handler func style
-func (h HTTPRouter) Handle(protocol, route string, handler xhandler.HandlerFuncC) {
-	h.router.Handle(protocol, route, handler)
+func (h HTTPRouter) Handle(protocol, route string, handler HandlerFuncC) {
+	handlerFunc := (func(context.Context, http.ResponseWriter, *http.Request))(handler)
+	h.router.HandleC(protocol, route, xhandler.HandlerFuncC(handlerFunc))
 }
 
 // Handler returns the router
 func (h HTTPRouter) Handler() http.Handler {
-	return h.router
+	return xhandler.New(h.rootContext, h.router)
+}
+
+func (h HTTPRouter) Param(ctx context.Context, name string) string {
+	return xmux.Param(ctx, name)
 }
 
 // SetRedirectTrailingSlash wraps this internal functionality of
@@ -28,18 +35,13 @@ func (h HTTPRouter) SetRedirectTrailingSlash(enabled bool) {
 	h.router.RedirectTrailingSlash = enabled
 }
 
-// GetRouteParameter implemention will extract the param the julienschmidt way
-func (h HTTPRouter) GetRouteParameter(r http.Request, param string) string {
-	path := httprouter.CleanPath(r.URL.Path)
-	_, params, _ := h.router.Lookup(r.Method, path)
-	return params.ByName(param)
-}
-
 // NewHTTPRouter returns a new instance of julienschmidt/httprouter
 // this is the default router when using api2go
-func NewHTTPRouter(prefix string, notAllowedHandler http.Handler) Routeable {
-	router := httprouter.New()
+func NewHTTPRouter(root context.Context, prefix string, notAllowedHandler http.Handler) Routeable {
+	router := xmux.New()
 	router.HandleMethodNotAllowed = true
-	router.MethodNotAllowed = notAllowedHandler
-	return &HTTPRouter{router: router}
+	router.MethodNotAllowed = xhandler.HandlerFuncC(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
+		notAllowedHandler.ServeHTTP(w, r)
+	})
+	return &HTTPRouter{router: router, rootContext: root}
 }

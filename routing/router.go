@@ -6,9 +6,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-// HandlerFunc must contain all params from the route
-// in the form key,value
-type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request)
+type HandlerFuncC func(context.Context, http.ResponseWriter, *http.Request)
 
 // Routeable allows drop in replacement for api2go's router
 // by default, we are using julienschmidt/httprouter
@@ -22,5 +20,7 @@ type Routeable interface {
 	// protocol will be PATCH,OPTIONS,GET,POST,PUT
 	// route will be the request route /items/:id where :id means dynamically filled params
 	// handler is the handler that will answer to this specific route
-	Handle(protocol, route string, handler HandlerFunc)
+	Handle(protocol, route string, handler HandlerFuncC)
+
+	Param(context.Context, string) string
 }
