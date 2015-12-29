@@ -3,6 +3,7 @@ package routing
 import (
 	"net/http"
 
+	"github.com/rs/xhandler"
 	"golang.org/x/net/context"
 )
 
@@ -14,7 +15,7 @@ type HandlerFuncC func(context.Context, http.ResponseWriter, *http.Request)
 // e.g. gin
 type Routeable interface {
 	// Handler should return the routers main handler, often this is the router itself
-	Handler() http.Handler
+	Handler() xhandler.HandlerC
 	// Handle must be implemented to register api2go's default routines
 	// to your used router.
 	// protocol will be PATCH,OPTIONS,GET,POST,PUT
@@ -23,4 +24,5 @@ type Routeable interface {
 	Handle(protocol, route string, handler HandlerFuncC)
 
 	Param(context.Context, string) string
+	SetParam(context.Context, string, string)
 }

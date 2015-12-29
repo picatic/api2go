@@ -13,6 +13,8 @@ import (
 	"github.com/manyminds/api2go/jsonapi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/rs/xhandler"
+	"golang.org/x/net/context"
 	"gopkg.in/guregu/null.v2"
 )
 
@@ -1251,9 +1253,8 @@ var _ = Describe("RestHandler", func() {
 		It("Extracts multiple parameters correctly", func() {
 			req, err := http.NewRequest("GET", "/v0/posts?sort=title,date", nil)
 			Expect(err).To(BeNil())
-			c := &APIContext{}
 
-			api2goReq := buildRequest(c, req)
+			api2goReq := buildRequest(context.Background(), req)
 			Expect(api2goReq.QueryParams).To(Equal(map[string][]string{"sort": {"title", "date"}}))
 		})
 	})
@@ -1443,6 +1444,7 @@ var _ = Describe("RestHandler", func() {
 				Expect(err).To(BeNil())
 				api.Handler().ServeHTTP(rec, req)
 				expected := `{"errors":[{"status":"405","title":"Method Not Allowed"}]}`
+				fmt.Println(rec.Body.String())
 				Expect(rec.Body.String()).To(MatchJSON(expected))
 				Expect(rec.Header().Get("Content-Type")).To(Equal(defaultContentTypeHeader))
 				Expect(rec.Code).To(Equal(http.StatusMethodNotAllowed))
@@ -1494,8 +1496,12 @@ var _ = Describe("RestHandler", func() {
 
 			api = NewAPI("v1")
 			api.AddResource(Post{}, source)
-			MiddleTest := func(c APIContexter, w http.ResponseWriter, r *http.Request) {
-				w.Header().Add("x-test", "test123")
+			MiddleTest := func(next xhandler.HandlerC) xhandler.HandlerC {
+				return xhandler.HandlerFuncC(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+					w.Header().Add("x-test", "test123")
+
+					next.ServeHTTPC(c, w, r)
+				})
 			}
 			api.UseMiddleware(MiddleTest)
 			rec = httptest.NewRecorder()
@@ -1518,7 +1524,7 @@ var _ = Describe("RestHandler", func() {
 			source              *fixtureSource
 		)
 		type CustomContext struct {
-			APIContext
+			context.Context
 		}
 
 		BeforeEach(func() {
@@ -1528,10 +1534,6 @@ var _ = Describe("RestHandler", func() {
 
 			api = NewAPI("v1")
 			api.AddResource(Post{}, source)
-			api.SetContextAllocator(func(api *API) APIContexter {
-				customContextCalled = true
-				return &CustomContext{}
-			})
 			rec = httptest.NewRecorder()
 		})
 

@@ -3,14 +3,12 @@ package api2go
 import (
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/manyminds/api2go/jsonapi"
 	"github.com/manyminds/api2go/routing"
+	"github.com/rs/xhandler"
+	"golang.org/x/net/context"
 )
-
-// HandlerFunc for api2go middlewares
-type HandlerFunc func(APIContexter, http.ResponseWriter, *http.Request)
 
 // DefaultContentMarshalers is the default set of content marshalers for an API.
 // Currently this means handling application/vnd.api+json content type bodies
@@ -21,28 +19,21 @@ var DefaultContentMarshalers = map[string]ContentMarshaler{
 
 // API is a REST JSONAPI.
 type API struct {
-	router           routing.Routeable
-	info             information
-	resources        []resource
-	marshalers       map[string]ContentMarshaler
-	middlewares      []HandlerFunc
-	contextPool      sync.Pool
-	contextAllocator APIContextAllocatorFunc
+	router      routing.Routeable
+	info        information
+	resources   []resource
+	marshalers  map[string]ContentMarshaler
+	middlewares xhandler.Chain
 }
 
 // Handler returns the http.Handler instance for the API.
 func (api API) Handler() http.Handler {
-	return api.router.Handler()
+	return xhandler.New(context.Background(), api.middlewares.HandlerC(api.router.Handler()))
 }
 
 //Router returns the specified router on an api instance
 func (api API) Router() routing.Routeable {
 	return api.router
-}
-
-// SetContextAllocator custom implementation for making contexts
-func (api *API) SetContextAllocator(allocator APIContextAllocatorFunc) {
-	api.contextAllocator = allocator
 }
 
 // AddResource registers a data source for the given resource
@@ -55,7 +46,7 @@ func (api *API) AddResource(prototype jsonapi.MarshalIdentifier, source CRUD) {
 
 // UseMiddleware registers middlewares that implement the api2go.HandlerFunc
 // Middleware is run before any generated routes.
-func (api *API) UseMiddleware(middleware ...HandlerFunc) {
+func (api *API) UseMiddleware(middleware ...func(xhandler.HandlerC) xhandler.HandlerC) {
 	api.middlewares = append(api.middlewares, middleware...)
 }
 
@@ -132,20 +123,30 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 	info := information{prefix: prefix, resolver: resolver}
 
 	api := &API{
-		router:           router,
-		info:             info,
-		marshalers:       marshalers,
-		middlewares:      make([]HandlerFunc, 0),
-		contextAllocator: nil,
+		router:     router,
+		info:       info,
+		marshalers: marshalers,
 	}
 
-	api.contextPool.New = func() interface{} {
-		if api.contextAllocator != nil {
-			return api.contextAllocator(api)
+	requestInfo := func(r *http.Request, api *API) information {
+		var info information
+		if resolver, ok := api.info.resolver.(RequestAwareURLResolver); ok {
+			resolver.SetRequest(*r)
+			info = information{prefix: api.info.prefix, resolver: resolver}
+		} else {
+			info = api.info
 		}
-		return api.allocateDefaultContext()
+
+		return info
 	}
 
+	api.middlewares = append(api.middlewares, func(next xhandler.HandlerC) xhandler.HandlerC {
+		return xhandler.HandlerFuncC(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+			c = context.WithValue(c, api_info, requestInfo(r, api))
+			c = context.WithValue(c, api_prefix, strings.Trim(api.info.prefix, "/"))
+			next.ServeHTTPC(c, w, r)
+		})
+	})
 	return api
 }
 
