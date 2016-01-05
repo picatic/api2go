@@ -25,6 +25,7 @@ const (
 	api_relation             = "API:RELATION"
 	api_linked               = "API:LINKED"
 	api_prefix               = "API:PREFIX"
+	api_api                  = "API"
 )
 
 var queryFieldsRegex = regexp.MustCompile(`^fields\[(\w+)\]$`)
@@ -394,7 +395,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 		return err
 	}
 
-	return respondWith(response, info, http.StatusOK, w, r, res.marshalers)
+	return RespondWith(response, http.StatusOK, c, w, r)
 }
 
 func (res *resource) handleRead(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
@@ -405,9 +406,8 @@ func (res *resource) handleRead(c context.Context, w http.ResponseWriter, r *htt
 	if err != nil {
 		return err
 	}
-	info := c.Value(api_info).(information)
 
-	return respondWith(response, info, http.StatusOK, w, r, res.marshalers)
+	return RespondWith(response, http.StatusOK, c, w, r)
 }
 
 func (res *resource) handleReadRelation(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
@@ -509,7 +509,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 			if err != nil {
 				return err
 			}
-			return respondWith(obj, info, http.StatusOK, w, r, res.marshalers)
+			return RespondWith(obj, http.StatusOK, c, w, r)
 		}
 	}
 
@@ -521,7 +521,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 
 	answ := response{Data: err, Status: http.StatusNotFound}
 
-	return respondWith(answ, info, http.StatusNotFound, w, r, res.marshalers)
+	return RespondWith(answ, http.StatusNotFound, c, w, r)
 
 }
 
@@ -565,8 +565,7 @@ func (res *resource) handleCreate(c context.Context, w http.ResponseWriter, r *h
 	// handle 200 status codes
 	switch response.StatusCode() {
 	case http.StatusCreated:
-		info := c.Value(api_info).(information)
-		return respondWith(response, info, http.StatusCreated, w, r, res.marshalers)
+		return RespondWith(response, http.StatusCreated, c, w, r)
 	case http.StatusNoContent:
 		w.WriteHeader(response.StatusCode())
 		return nil
@@ -665,8 +664,7 @@ func (res *resource) handleUpdate(c context.Context, w http.ResponseWriter, r *h
 
 			response = internalResponse
 		}
-		info := c.Value(api_info).(information)
-		return respondWith(response, info, http.StatusOK, w, r, res.marshalers)
+		return RespondWith(response, http.StatusOK, c, w, r)
 	case http.StatusAccepted:
 		w.WriteHeader(http.StatusAccepted)
 		return nil
@@ -899,7 +897,9 @@ func writeResult(w http.ResponseWriter, data []byte, status int, contentType str
 	w.Write(data)
 }
 
-func respondWith(obj Responder, info information, status int, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) error {
+func RespondWith(obj Responder, status int, c context.Context, w http.ResponseWriter, r *http.Request) error {
+	marshalers := c.Value(api_api).(*API).marshalers
+	info := c.Value(api_info).(information)
 	data, err := jsonapi.MarshalWithURLs(obj.Result(), info)
 	if err != nil {
 		return err

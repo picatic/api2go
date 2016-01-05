@@ -144,6 +144,7 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 		return xhandler.HandlerFuncC(func(c context.Context, w http.ResponseWriter, r *http.Request) {
 			c = context.WithValue(c, api_info, requestInfo(r, api))
 			c = context.WithValue(c, api_prefix, strings.Trim(api.info.prefix, "/"))
+			c = context.WithValue(c, api_api, api)
 			next.ServeHTTPC(c, w, r)
 		})
 	})
