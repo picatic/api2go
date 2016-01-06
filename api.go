@@ -26,6 +26,7 @@ const (
 	api_linked               = "API:LINKED"
 	api_prefix               = "API:PREFIX"
 	api_api                  = "API"
+	API_ERROR                = "API:ERROR"
 )
 
 var queryFieldsRegex = regexp.MustCompile(`^fields\[(\w+)\]$`)
