@@ -377,7 +377,7 @@ func setFieldValue(field *reflect.Value, value reflect.Value) (err error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(marshaledValue))
+
 		err = target.UnmarshalJSON(marshaledValue)
 		if err != nil {
 			return err
