@@ -304,7 +304,8 @@ func UnmarshalInto(input map[string]interface{}, targetStructType reflect.Type, 
 						// Set the field to its zero value if its type is from the zero or null package.
 						if extType := field.Type(); extType != nil && extType.Kind().String() == "struct" {
 							fieldSource := extType.Field(0).Name
-							if strings.HasPrefix(fieldSource, "Null") || strings.HasPrefix(fieldSource, "Zero") || strings.HasPrefix(fieldSource, "Time") {
+
+							if strings.HasPrefix(fieldSource, "null") || strings.HasPrefix(fieldSource, "Null") || strings.HasPrefix(fieldSource, "Zero") || strings.HasPrefix(fieldSource, "Time") {
 								field.Set(reflect.Zero(field.Type()))
 							}
 
