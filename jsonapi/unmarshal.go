@@ -305,7 +305,7 @@ func UnmarshalInto(input map[string]interface{}, targetStructType reflect.Type, 
 						if extType := field.Type(); extType != nil && extType.Kind().String() == "struct" {
 							fieldSource := extType.Field(0).Name
 
-							if strings.HasPrefix(fieldSource, "null") || strings.HasPrefix(fieldSource, "Null") || strings.HasPrefix(fieldSource, "Zero") || strings.HasPrefix(fieldSource, "Time") {
+							if strings.HasPrefix(fieldSource, "JSON") || strings.HasPrefix(fieldSource, "null") || strings.HasPrefix(fieldSource, "Null") || strings.HasPrefix(fieldSource, "Zero") || strings.HasPrefix(fieldSource, "Time") {
 								field.Set(reflect.Zero(field.Type()))
 							}
 
