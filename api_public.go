@@ -24,11 +24,15 @@ type API struct {
 	resources   []resource
 	marshalers  map[string]ContentMarshaler
 	middlewares xhandler.Chain
+	Context     context.Context
 }
 
 // Handler returns the http.Handler instance for the API.
 func (api API) Handler() http.Handler {
-	return xhandler.New(context.Background(), api.middlewares.HandlerC(api.router.Handler()))
+	if api.Context == nil {
+		api.Context = context.Background()
+	}
+	return xhandler.New(api.Context, api.middlewares.HandlerC(api.router.Handler()))
 }
 
 //Router returns the specified router on an api instance
@@ -90,6 +94,14 @@ func NewAPIWithBaseURL(prefix string, baseURL string) *API {
 // `prefix` is added in front of all endpoints.
 func NewAPI(prefix string) *API {
 	return NewAPIWithMarshalers(prefix, "", DefaultContentMarshalers)
+}
+
+// NewAPIwithContext returns an initialized API instance with a context
+// `prefix` is added in front of all endpoints.
+func NewAPIWithContext(prefix string, ctx context.Context) *API {
+	newAPI := NewAPIWithMarshalers(prefix, "", DefaultContentMarshalers)
+	newAPI.Context = ctx
+	return newAPI
 }
 
 // NewAPIWithRouting allows you to use a custom URLResolver, marshalers and custom routing
