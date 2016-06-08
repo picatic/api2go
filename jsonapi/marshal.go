@@ -270,10 +270,10 @@ func getStructRelationships(relationer MarshalLinkedRelations, information Serve
 		}
 
 		// set URLs if necessary
-		links := getLinksForServerInformation(relationer, name, information)
-		if len(links) > 0 {
-			relationships[name]["links"] = links
-		}
+		// links := getLinksForServerInformation(relationer, name, information)
+		// if len(links) > 0 {
+		// 	relationships[name]["links"] = links
+		// }
 
 		// this marks the reference as already included
 		delete(notIncludedReferences, referenceIDs[0].Name)
