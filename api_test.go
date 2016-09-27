@@ -1254,7 +1254,7 @@ var _ = Describe("RestHandler", func() {
 			req, err := http.NewRequest("GET", "/v0/posts?sort=title,date", nil)
 			Expect(err).To(BeNil())
 
-			api2goReq := buildRequest(context.Background(), req)
+			api2goReq := BuildRequest(context.Background(), req)
 			Expect(api2goReq.QueryParams).To(Equal(map[string][]string{"sort": {"title", "date"}}))
 		})
 	})

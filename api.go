@@ -352,7 +352,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 	return &res
 }
 
-func buildRequest(c context.Context, r *http.Request) Request {
+func BuildRequest(c context.Context, r *http.Request) Request {
 	req := Request{PlainRequest: r}
 	params := make(map[string][]string)
 	for key, values := range r.URL.Query() {
@@ -374,7 +374,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 			return NewHTTPError(nil, "Resource does not implement the PaginatedFindAll interface", http.StatusNotFound)
 		}
 
-		count, response, err := source.PaginatedFindAll(buildRequest(c, r))
+		count, response, err := source.PaginatedFindAll(BuildRequest(c, r))
 		if err != nil {
 			return err
 		}
@@ -391,7 +391,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 		return NewHTTPError(nil, "Resource does not implement the FindAll interface", http.StatusNotFound)
 	}
 
-	response, err := source.FindAll(buildRequest(c, r))
+	response, err := source.FindAll(BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -402,7 +402,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 func (res *resource) handleRead(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
 	id := params(c, "id")
 
-	response, err := res.source.FindOne(id, buildRequest(c, r))
+	response, err := res.source.FindOne(id, BuildRequest(c, r))
 
 	if err != nil {
 		return err
@@ -414,7 +414,7 @@ func (res *resource) handleRead(c context.Context, w http.ResponseWriter, r *htt
 func (res *resource) handleReadRelation(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
 	id := params(c, "id")
 
-	obj, err := res.source.FindOne(id, buildRequest(c, r))
+	obj, err := res.source.FindOne(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -475,7 +475,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 	linked := c.Value(api_linked).(jsonapi.Reference)
 	for _, resource := range api.resources {
 		if resource.name == linked.Type {
-			request := buildRequest(c, r)
+			request := BuildRequest(c, r)
 			request.QueryParams[res.name+"ID"] = []string{id}
 			request.QueryParams[res.name+"Name"] = []string{linked.Name}
 
@@ -550,7 +550,7 @@ func (res *resource) handleCreate(c context.Context, w http.ResponseWriter, r *h
 	//TODO create multiple objects not only one.
 	newObj := newObjs.Index(0).Interface()
 
-	response, err := res.source.Create(newObj, buildRequest(c, r))
+	response, err := res.source.Create(newObj, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -580,7 +580,7 @@ func (res *resource) handleCreate(c context.Context, w http.ResponseWriter, r *h
 
 func (res *resource) handleUpdate(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
 	id := params(c, "id")
-	obj, err := res.source.FindOne(id, buildRequest(c, r))
+	obj, err := res.source.FindOne(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -644,7 +644,7 @@ func (res *resource) handleUpdate(c context.Context, w http.ResponseWriter, r *h
 
 	updatingObj := updatingObjs.Index(0).Interface()
 
-	response, err := res.source.Update(updatingObj, buildRequest(c, r))
+	response, err := res.source.Update(updatingObj, BuildRequest(c, r))
 
 	if err != nil {
 		return err
@@ -654,7 +654,7 @@ func (res *resource) handleUpdate(c context.Context, w http.ResponseWriter, r *h
 	case http.StatusOK:
 		updated := response.Result()
 		if updated == nil {
-			internalResponse, err := res.source.FindOne(id, buildRequest(c, r))
+			internalResponse, err := res.source.FindOne(id, BuildRequest(c, r))
 			if err != nil {
 				return err
 			}
@@ -685,7 +685,7 @@ func (res *resource) handleReplaceRelation(c context.Context, w http.ResponseWri
 
 	id := params(c, "id")
 
-	response, err := res.source.FindOne(id, buildRequest(c, r))
+	response, err := res.source.FindOne(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -714,9 +714,9 @@ func (res *resource) handleReplaceRelation(c context.Context, w http.ResponseWri
 	}
 
 	if resType == reflect.Struct {
-		_, err = res.source.Update(reflect.ValueOf(editObj).Elem().Interface(), buildRequest(c, r))
+		_, err = res.source.Update(reflect.ValueOf(editObj).Elem().Interface(), BuildRequest(c, r))
 	} else {
-		_, err = res.source.Update(editObj, buildRequest(c, r))
+		_, err = res.source.Update(editObj, BuildRequest(c, r))
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -732,7 +732,7 @@ func (res *resource) handleAddToManyRelation(c context.Context, w http.ResponseW
 	id := params(c, "id")
 	relName := c.Value(api_relation).(string)
 
-	response, err := res.source.FindOne(id, buildRequest(c, r))
+	response, err := res.source.FindOne(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -781,9 +781,9 @@ func (res *resource) handleAddToManyRelation(c context.Context, w http.ResponseW
 	targetObj.AddToManyIDs(relName, newIDs)
 
 	if resType == reflect.Struct {
-		_, err = res.source.Update(reflect.ValueOf(targetObj).Elem().Interface(), buildRequest(c, r))
+		_, err = res.source.Update(reflect.ValueOf(targetObj).Elem().Interface(), BuildRequest(c, r))
 	} else {
-		_, err = res.source.Update(targetObj, buildRequest(c, r))
+		_, err = res.source.Update(targetObj, BuildRequest(c, r))
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -800,7 +800,7 @@ func (res *resource) handleDeleteToManyRelation(c context.Context, w http.Respon
 	id := params(c, "id")
 	relName := c.Value(api_relation).(string)
 
-	response, err := res.source.FindOne(id, buildRequest(c, r))
+	response, err := res.source.FindOne(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
@@ -849,9 +849,9 @@ func (res *resource) handleDeleteToManyRelation(c context.Context, w http.Respon
 	targetObj.DeleteToManyIDs(relName, obsoleteIDs)
 
 	if resType == reflect.Struct {
-		_, err = res.source.Update(reflect.ValueOf(targetObj).Elem().Interface(), buildRequest(c, r))
+		_, err = res.source.Update(reflect.ValueOf(targetObj).Elem().Interface(), BuildRequest(c, r))
 	} else {
-		_, err = res.source.Update(targetObj, buildRequest(c, r))
+		_, err = res.source.Update(targetObj, BuildRequest(c, r))
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -869,7 +869,7 @@ func getPointerToStruct(oldObj interface{}) interface{} {
 
 func (res *resource) handleDelete(c context.Context, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
 	id := params(c, "id")
-	response, err := res.source.Delete(id, buildRequest(c, r))
+	response, err := res.source.Delete(id, BuildRequest(c, r))
 	if err != nil {
 		return err
 	}
