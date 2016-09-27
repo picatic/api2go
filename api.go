@@ -368,7 +368,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 	info := c.Value(api_info).(Information)
 
 	pagination := NewPaginationQueryParams(r)
-	if pagination.isValid() {
+	if pagination.IsValid() {
 		source, ok := res.source.(PaginatedFindAll)
 		if !ok {
 			return NewHTTPError(nil, "Resource does not implement the PaginatedFindAll interface", http.StatusNotFound)
@@ -379,7 +379,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 			return err
 		}
 
-		paginationLinks, err := pagination.getLinks(r, count, info)
+		paginationLinks, err := pagination.GetLinks(r, count, info)
 		if err != nil {
 			return err
 		}
@@ -481,7 +481,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 
 			// check for pagination, otherwise normal FindAll
 			pagination := NewPaginationQueryParams(r)
-			if pagination.isValid() {
+			if pagination.IsValid() {
 				source, ok := resource.source.(PaginatedFindAll)
 				if !ok {
 					return NewHTTPError(nil, "Resource does not implement the PaginatedFindAll interface", http.StatusNotFound)
@@ -493,7 +493,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 					return err
 				}
 
-				paginationLinks, err := pagination.getLinks(r, count, info)
+				paginationLinks, err := pagination.GetLinks(r, count, info)
 				if err != nil {
 					return err
 				}
