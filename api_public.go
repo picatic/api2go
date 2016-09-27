@@ -20,7 +20,7 @@ var DefaultContentMarshalers = map[string]ContentMarshaler{
 // API is a REST JSONAPI.
 type API struct {
 	router      routing.Routeable
-	info        information
+	info        Information
 	resources   []resource
 	marshalers  map[string]ContentMarshaler
 	middlewares xhandler.Chain
@@ -132,7 +132,7 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 		prefixSlashes = "/"
 	}
 
-	info := information{prefix: prefix, resolver: resolver}
+	info := Information{prefix: prefix, resolver: resolver}
 
 	api := &API{
 		router:     router,
@@ -140,11 +140,11 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 		marshalers: marshalers,
 	}
 
-	requestInfo := func(r *http.Request, api *API) information {
-		var info information
+	requestInfo := func(r *http.Request, api *API) Information {
+		var info Information
 		if resolver, ok := api.info.resolver.(RequestAwareURLResolver); ok {
 			resolver.SetRequest(*r)
-			info = information{prefix: api.info.prefix, resolver: resolver}
+			info = Information{prefix: api.info.prefix, resolver: resolver}
 		} else {
 			info = api.info
 		}
