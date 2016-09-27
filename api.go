@@ -66,7 +66,7 @@ type paginationQueryParams struct {
 	number, size, offset, limit string
 }
 
-func newPaginationQueryParams(r *http.Request) paginationQueryParams {
+func NewPaginationQueryParams(r *http.Request) paginationQueryParams {
 	var result paginationQueryParams
 
 	queryParams := r.URL.Query()
@@ -367,7 +367,7 @@ func buildRequest(c context.Context, r *http.Request) Request {
 func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	info := c.Value(api_info).(information)
 
-	pagination := newPaginationQueryParams(r)
+	pagination := NewPaginationQueryParams(r)
 	if pagination.isValid() {
 		source, ok := res.source.(PaginatedFindAll)
 		if !ok {
@@ -384,7 +384,7 @@ func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *ht
 			return err
 		}
 
-		return respondWithPagination(response, info, http.StatusOK, paginationLinks, w, r, res.marshalers)
+		return RespondWithPagination(response, info, http.StatusOK, paginationLinks, w, r, res.marshalers)
 	}
 	source, ok := res.source.(FindAll)
 	if !ok {
@@ -480,7 +480,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 			request.QueryParams[res.name+"Name"] = []string{linked.Name}
 
 			// check for pagination, otherwise normal FindAll
-			pagination := newPaginationQueryParams(r)
+			pagination := NewPaginationQueryParams(r)
 			if pagination.isValid() {
 				source, ok := resource.source.(PaginatedFindAll)
 				if !ok {
@@ -498,7 +498,7 @@ func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWr
 					return err
 				}
 
-				return respondWithPagination(response, info, http.StatusOK, paginationLinks, w, r, res.marshalers)
+				return RespondWithPagination(response, info, http.StatusOK, paginationLinks, w, r, res.marshalers)
 			}
 
 			source, ok := resource.source.(FindAll)
@@ -914,7 +914,7 @@ func RespondWith(obj Responder, status int, c context.Context, w http.ResponseWr
 	return marshalResponse(data, w, status, r, marshalers)
 }
 
-func respondWithPagination(obj Responder, info information, status int, links map[string]string, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) error {
+func RespondWithPagination(obj Responder, info information, status int, links map[string]string, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) error {
 	data, err := jsonapi.MarshalWithURLs(obj.Result(), info)
 	if err != nil {
 		return err
