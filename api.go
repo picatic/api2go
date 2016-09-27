@@ -62,12 +62,12 @@ func (i Information) GetPrefix() string {
 	return i.prefix
 }
 
-type paginationQueryParams struct {
+type PaginationQueryParams struct {
 	number, size, offset, limit string
 }
 
-func NewPaginationQueryParams(r *http.Request) paginationQueryParams {
-	var result paginationQueryParams
+func NewPaginationQueryParams(r *http.Request) PaginationQueryParams {
+	var result PaginationQueryParams
 
 	queryParams := r.URL.Query()
 	result.number = queryParams.Get("page[number]")
@@ -78,7 +78,7 @@ func NewPaginationQueryParams(r *http.Request) paginationQueryParams {
 	return result
 }
 
-func (p paginationQueryParams) isValid() bool {
+func (p PaginationQueryParams) IsValid() bool {
 	if p.number == "" && p.size == "" && p.offset == "" && p.limit == "" {
 		return false
 	}
@@ -94,7 +94,7 @@ func (p paginationQueryParams) isValid() bool {
 	return false
 }
 
-func (p paginationQueryParams) getLinks(r *http.Request, count uint, info Information) (result map[string]string, err error) {
+func (p PaginationQueryParams) GetLinks(r *http.Request, count uint, info Information) (result map[string]string, err error) {
 	result = make(map[string]string)
 
 	params := r.URL.Query()
