@@ -49,16 +49,16 @@ func (r response) StatusCode() int {
 	return r.Status
 }
 
-type information struct {
+type Information struct {
 	prefix   string
 	resolver URLResolver
 }
 
-func (i information) GetBaseURL() string {
+func (i Information) GetBaseURL() string {
 	return i.resolver.GetBaseURL()
 }
 
-func (i information) GetPrefix() string {
+func (i Information) GetPrefix() string {
 	return i.prefix
 }
 
@@ -94,7 +94,7 @@ func (p paginationQueryParams) isValid() bool {
 	return false
 }
 
-func (p paginationQueryParams) getLinks(r *http.Request, count uint, info information) (result map[string]string, err error) {
+func (p paginationQueryParams) getLinks(r *http.Request, count uint, info Information) (result map[string]string, err error) {
 	result = make(map[string]string)
 
 	params := r.URL.Query()
@@ -365,7 +365,7 @@ func BuildRequest(c context.Context, r *http.Request) Request {
 }
 
 func (res *resource) handleIndex(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	info := c.Value(api_info).(information)
+	info := c.Value(api_info).(Information)
 
 	pagination := NewPaginationQueryParams(r)
 	if pagination.isValid() {
@@ -421,7 +421,7 @@ func (res *resource) handleReadRelation(c context.Context, w http.ResponseWriter
 
 	internalError := NewHTTPError(nil, "Internal server error, invalid object structure", http.StatusInternalServerError)
 
-	info := c.Value(api_info).(information)
+	info := c.Value(api_info).(Information)
 	marshalled, err := jsonapi.MarshalWithURLs(obj.Result(), info)
 	data, ok := marshalled["data"]
 	if !ok {
@@ -471,7 +471,7 @@ func (res *resource) handleReadRelation(c context.Context, w http.ResponseWriter
 // try to find the referenced resource and call the findAll Method with referencing resource id as param
 func (res *resource) handleLinked(c context.Context, api *API, w http.ResponseWriter, r *http.Request, params func(context.Context, string) string) error {
 	id := params(c, "id")
-	info := c.Value(api_info).(information)
+	info := c.Value(api_info).(Information)
 	linked := c.Value(api_linked).(jsonapi.Reference)
 	for _, resource := range api.resources {
 		if resource.name == linked.Type {
@@ -900,7 +900,7 @@ func writeResult(w http.ResponseWriter, data []byte, status int, contentType str
 
 func RespondWith(obj Responder, status int, c context.Context, w http.ResponseWriter, r *http.Request) error {
 	marshalers := c.Value(api_api).(*API).marshalers
-	info := c.Value(api_info).(information)
+	info := c.Value(api_info).(Information)
 	data, err := jsonapi.MarshalWithURLs(obj.Result(), info)
 	if err != nil {
 		return err
@@ -914,7 +914,7 @@ func RespondWith(obj Responder, status int, c context.Context, w http.ResponseWr
 	return marshalResponse(data, w, status, r, marshalers)
 }
 
-func RespondWithPagination(obj Responder, info information, status int, links map[string]string, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) error {
+func RespondWithPagination(obj Responder, info Information, status int, links map[string]string, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) error {
 	data, err := jsonapi.MarshalWithURLs(obj.Result(), info)
 	if err != nil {
 		return err
