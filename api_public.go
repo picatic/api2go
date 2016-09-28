@@ -83,7 +83,7 @@ func (api *API) SetRedirectTrailingSlash(enabled bool) {
 // preferred content type, otherwise it will respond using whatever content
 // type the client provided in its Content-Type request header.
 func NewAPIWithMarshalling(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler) *API {
-	r := routing.NewHTTPRouter(prefix, notAllowedHandler{marshalers: marshalers})
+	r := routing.NewHTTPRouter(prefix, NotAllowedHandler{marshalers: marshalers})
 	return newAPI(prefix, resolver, marshalers, r)
 }
 
