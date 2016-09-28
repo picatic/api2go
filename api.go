@@ -187,7 +187,7 @@ func (p PaginationQueryParams) GetLinks(r *http.Request, count uint, info Inform
 	return
 }
 
-type notAllowedHandler struct {
+type NotAllowedHandler struct {
 	marshalers map[string]ContentMarshaler
 }
 
