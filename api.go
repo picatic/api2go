@@ -191,7 +191,7 @@ type NotAllowedHandler struct {
 	marshalers map[string]ContentMarshaler
 }
 
-func (n notAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (n NotAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := NewHTTPError(nil, "Method Not Allowed", http.StatusMethodNotAllowed)
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	HandleError(err, w, r, n.marshalers)
