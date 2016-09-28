@@ -194,7 +194,7 @@ type notAllowedHandler struct {
 func (n notAllowedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := NewHTTPError(nil, "Method Not Allowed", http.StatusMethodNotAllowed)
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	handleError(err, w, r, n.marshalers)
+	HandleError(err, w, r, n.marshalers)
 }
 
 type resource struct {
@@ -255,14 +255,14 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 	api.router.Handle("GET", baseURL, func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		err := res.handleIndex(ctx, w, r)
 		if err != nil {
-			handleError(err, w, r, marshalers)
+			HandleError(err, w, r, marshalers)
 		}
 	})
 
 	api.router.Handle("GET", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		err := res.handleRead(ctx, w, r, api.router.Param)
 		if err != nil {
-			handleError(err, w, r, marshalers)
+			HandleError(err, w, r, marshalers)
 		}
 	})
 
@@ -276,7 +276,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 					ctx = context.WithValue(ctx, api_relation, relation.Name)
 					err := res.handleReadRelation(ctx, w, r, api.router.Param)
 					if err != nil {
-						handleError(err, w, r, marshalers)
+						HandleError(err, w, r, marshalers)
 					}
 				}
 			}(relation))
@@ -286,7 +286,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 					ctx = context.WithValue(ctx, api_linked, relation)
 					err := res.handleLinked(ctx, api, w, r, api.router.Param)
 					if err != nil {
-						handleError(err, w, r, marshalers)
+						HandleError(err, w, r, marshalers)
 					}
 				}
 			}(relation))
@@ -296,7 +296,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 					ctx = context.WithValue(ctx, api_relation, relation.Name)
 					err := res.handleReplaceRelation(ctx, w, r, api.router.Param)
 					if err != nil {
-						handleError(err, w, r, marshalers)
+						HandleError(err, w, r, marshalers)
 					}
 				}
 			}(relation))
@@ -308,7 +308,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 						ctx = context.WithValue(ctx, api_relation, relation.Name)
 						err := res.handleAddToManyRelation(ctx, w, r, api.router.Param)
 						if err != nil {
-							handleError(err, w, r, marshalers)
+							HandleError(err, w, r, marshalers)
 						}
 					}
 				}(relation))
@@ -318,7 +318,7 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 						ctx = context.WithValue(ctx, api_relation, relation.Name)
 						err := res.handleDeleteToManyRelation(ctx, w, r, api.router.Param)
 						if err != nil {
-							handleError(err, w, r, marshalers)
+							HandleError(err, w, r, marshalers)
 						}
 					}
 				}(relation))
@@ -329,21 +329,21 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 	api.router.Handle("POST", baseURL, func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		err := res.handleCreate(ctx, w, r)
 		if err != nil {
-			handleError(err, w, r, marshalers)
+			HandleError(err, w, r, marshalers)
 		}
 	})
 
 	api.router.Handle("DELETE", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		err := res.handleDelete(ctx, w, r, api.router.Param)
 		if err != nil {
-			handleError(err, w, r, marshalers)
+			HandleError(err, w, r, marshalers)
 		}
 	})
 
 	api.router.Handle("PATCH", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		err := res.handleUpdate(ctx, w, r, api.router.Param)
 		if err != nil {
-			handleError(err, w, r, marshalers)
+			HandleError(err, w, r, marshalers)
 		}
 	})
 
@@ -1087,7 +1087,7 @@ func selectContentMarshaler(r *http.Request, marshalers map[string]ContentMarsha
 	return
 }
 
-func handleError(err error, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) {
+func HandleError(err error, w http.ResponseWriter, r *http.Request, marshalers map[string]ContentMarshaler) {
 	marshaler, contentType := selectContentMarshaler(r, marshalers)
 
 	log.Println(err)
