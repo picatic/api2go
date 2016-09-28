@@ -44,7 +44,7 @@ func NewHTTPRouter(prefix string, notAllowedHandler http.Handler) Routeable {
 	router := xmux.New()
 	router.HandleMethodNotAllowed = true
 	router.MethodNotAllowed = xhandler.HandlerFuncC(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
-		NotAllowedHandler.ServeHTTP(w, r)
+		notAllowedHandler.ServeHTTP(w, r)
 	})
 	return &HTTPRouter{router: router}
 }
