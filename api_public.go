@@ -27,6 +27,10 @@ type API struct {
 	Context     context.Context
 }
 
+func (api API) SetRouter(router routing.Routeable) {
+	api.router = router
+}
+
 // Handler returns the http.Handler instance for the API.
 func (api API) Handler() http.Handler {
 	if api.Context == nil {
