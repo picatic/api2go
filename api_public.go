@@ -104,6 +104,15 @@ func NewAPIWithContext(prefix string, ctx context.Context) *API {
 	return newAPI
 }
 
+// NewAPIWithContextAndRouting returns an initialized API instance with a context and routing
+// `prefix` is added in front of all endpoints.
+func NewAPIWithContextAndRouting(prefix string, ctx context.Context, router routing.Routeable) *API {
+	newAPI := NewAPIWithMarshalers(prefix, "", DefaultContentMarshalers)
+	newAPI.Context = ctx
+	newAPI.router = router
+	return newAPI
+}
+
 // NewAPIWithRouting allows you to use a custom URLResolver, marshalers and custom routing
 // if you want to use the default routing, you should use another constructor.
 //
