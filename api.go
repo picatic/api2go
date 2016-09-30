@@ -281,15 +281,16 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 				}
 			}(relation))
 
-			api.router.Handle("GET", baseURL+"/:id/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
-				return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-					ctx = context.WithValue(ctx, api_linked, relation)
-					err := res.handleLinked(ctx, api, w, r, api.router.Param)
-					if err != nil {
-						HandleError(err, w, r, marshalers)
-					}
-				}
-			}(relation))
+			//Removed relation names routes
+			// api.router.Handle("GET", baseURL+"/:id/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
+			// 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+			// 		ctx = context.WithValue(ctx, api_linked, relation)
+			// 		err := res.handleLinked(ctx, api, w, r, api.router.Param)
+			// 		if err != nil {
+			// 			HandleError(err, w, r, marshalers)
+			// 		}
+			// 	}
+			// }(relation))
 
 			api.router.Handle("PATCH", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
 				return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
