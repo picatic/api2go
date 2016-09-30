@@ -217,11 +217,12 @@ func marshalData(element MarshalIdentifier, information ServerInformation) (map[
 	result["id"] = id
 	result["type"] = getStructType(element)
 
+	///REMOVED
 	// optional relationship interface for struct
-	references, ok := element.(MarshalLinkedRelations)
-	if ok {
-		result["relationships"] = getStructRelationships(references, information)
-	}
+	// references, ok := element.(MarshalLinkedRelations)
+	// if ok {
+	// 	result["relationships"] = getStructRelationships(references, information)
+	// }
 
 	return result, nil
 }
