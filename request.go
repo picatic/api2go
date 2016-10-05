@@ -1,9 +1,8 @@
 package api2go
 
 import (
+	"context"
 	"net/http"
-
-	"golang.org/x/net/context"
 )
 
 // Request contains additional information for FindOne and Find Requests
