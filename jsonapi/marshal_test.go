@@ -679,7 +679,7 @@ var _ = Describe("Marshalling", func() {
 						"scopes": []string{
 							"user_global",
 						},
-						"unicornID": int64(1234),
+						"unicorn_id": int64(1234),
 					},
 				},
 			}

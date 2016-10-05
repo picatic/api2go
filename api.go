@@ -1,6 +1,7 @@
 package api2go
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -14,8 +15,6 @@ import (
 
 	"github.com/golang/gddo/httputil"
 	"github.com/manyminds/api2go/jsonapi"
-	"github.com/manyminds/api2go/routing"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -242,25 +241,25 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 		baseURL = "/" + prefix + baseURL
 	}
 
-	api.router.Handle("OPTIONS", baseURL, func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	api.router.Handle("OPTIONS", baseURL, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET,POST,PATCH,OPTIONS")
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	api.router.Handle("OPTIONS", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	api.router.Handle("OPTIONS", baseURL+"/:id", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET,PATCH,DELETE,OPTIONS")
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	api.router.Handle("GET", baseURL, func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		err := res.handleIndex(ctx, w, r)
+	api.router.Handle("GET", baseURL, func(w http.ResponseWriter, r *http.Request) {
+		err := res.handleIndex(r.Context(), w, r)
 		if err != nil {
 			HandleError(err, w, r, marshalers)
 		}
 	})
 
-	api.router.Handle("GET", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		err := res.handleRead(ctx, w, r, api.router.Param)
+	api.router.Handle("GET", baseURL+"/:id", func(w http.ResponseWriter, r *http.Request) {
+		err := res.handleRead(r.Context(), w, r, api.router.Param)
 		if err != nil {
 			HandleError(err, w, r, marshalers)
 		}
@@ -271,9 +270,9 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 	if ok {
 		relations := casted.GetReferences()
 		for _, relation := range relations {
-			api.router.Handle("GET", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
-				return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-					ctx = context.WithValue(ctx, api_relation, relation.Name)
+			api.router.Handle("GET", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					ctx := context.WithValue(r.Context(), api_relation, relation.Name)
 					err := res.handleReadRelation(ctx, w, r, api.router.Param)
 					if err != nil {
 						HandleError(err, w, r, marshalers)
@@ -292,9 +291,9 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 			// 	}
 			// }(relation))
 
-			api.router.Handle("PATCH", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
-				return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-					ctx = context.WithValue(ctx, api_relation, relation.Name)
+			api.router.Handle("PATCH", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					ctx := context.WithValue(r.Context(), api_relation, relation.Name)
 					err := res.handleReplaceRelation(ctx, w, r, api.router.Param)
 					if err != nil {
 						HandleError(err, w, r, marshalers)
@@ -304,9 +303,9 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 
 			if _, ok := ptrPrototype.(jsonapi.EditToManyRelations); ok && relation.Name == jsonapi.Pluralize(relation.Name) {
 				// generate additional routes to manipulate to-many relationships
-				api.router.Handle("POST", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
-					return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-						ctx = context.WithValue(ctx, api_relation, relation.Name)
+				api.router.Handle("POST", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) http.HandlerFunc {
+					return func(w http.ResponseWriter, r *http.Request) {
+						ctx := context.WithValue(r.Context(), api_relation, relation.Name)
 						err := res.handleAddToManyRelation(ctx, w, r, api.router.Param)
 						if err != nil {
 							HandleError(err, w, r, marshalers)
@@ -314,9 +313,9 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 					}
 				}(relation))
 
-				api.router.Handle("DELETE", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) routing.HandlerFuncC {
-					return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-						ctx = context.WithValue(ctx, api_relation, relation.Name)
+				api.router.Handle("DELETE", baseURL+"/:id/relationships/"+relation.Name, func(relation jsonapi.Reference) http.HandlerFunc {
+					return func(w http.ResponseWriter, r *http.Request) {
+						ctx := context.WithValue(r.Context(), api_relation, relation.Name)
 						err := res.handleDeleteToManyRelation(ctx, w, r, api.router.Param)
 						if err != nil {
 							HandleError(err, w, r, marshalers)
@@ -327,22 +326,22 @@ func (api *API) addResource(prototype jsonapi.MarshalIdentifier, source CRUD, ma
 		}
 	}
 
-	api.router.Handle("POST", baseURL, func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		err := res.handleCreate(ctx, w, r)
+	api.router.Handle("POST", baseURL, func(w http.ResponseWriter, r *http.Request) {
+		err := res.handleCreate(r.Context(), w, r)
 		if err != nil {
 			HandleError(err, w, r, marshalers)
 		}
 	})
 
-	api.router.Handle("DELETE", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		err := res.handleDelete(ctx, w, r, api.router.Param)
+	api.router.Handle("DELETE", baseURL+"/:id", func(w http.ResponseWriter, r *http.Request) {
+		err := res.handleDelete(r.Context(), w, r, api.router.Param)
 		if err != nil {
 			HandleError(err, w, r, marshalers)
 		}
 	})
 
-	api.router.Handle("PATCH", baseURL+"/:id", func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		err := res.handleUpdate(ctx, w, r, api.router.Param)
+	api.router.Handle("PATCH", baseURL+"/:id", func(w http.ResponseWriter, r *http.Request) {
+		err := res.handleUpdate(r.Context(), w, r, api.router.Param)
 		if err != nil {
 			HandleError(err, w, r, marshalers)
 		}

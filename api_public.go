@@ -1,13 +1,13 @@
 package api2go
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/manyminds/api2go/jsonapi"
 	"github.com/manyminds/api2go/routing"
-	"github.com/rs/xhandler"
-	"golang.org/x/net/context"
 )
 
 // DefaultContentMarshalers is the default set of content marshalers for an API.
@@ -23,7 +23,7 @@ type API struct {
 	info        Information
 	resources   []resource
 	marshalers  map[string]ContentMarshaler
-	middlewares xhandler.Chain
+	middlewares routing.Chain
 	Context     context.Context
 }
 
@@ -36,7 +36,16 @@ func (api API) Handler() http.Handler {
 	if api.Context == nil {
 		api.Context = context.Background()
 	}
-	return xhandler.New(api.Context, api.middlewares.HandlerC(api.router.Handler()))
+	//return xhandler.New(api.Context, api.middlewares.HandlerC(api.router.Handler()))
+	//
+	return api.middlewares.HandlerF(func(w http.ResponseWriter, r *http.Request) {
+		c := r.Context()
+		fmt.Println("API.HANDLER.context->", c)
+		api.router.Handler().ServeHTTP(w, r)
+	})
+
+	//return api.middlewares.Handler(api.router.Handler())
+
 }
 
 //Router returns the specified router on an api instance
@@ -54,7 +63,7 @@ func (api *API) AddResource(prototype jsonapi.MarshalIdentifier, source CRUD) {
 
 // UseMiddleware registers middlewares that implement the api2go.HandlerFunc
 // Middleware is run before any generated routes.
-func (api *API) UseMiddleware(middleware ...func(xhandler.HandlerC) xhandler.HandlerC) {
+func (api *API) UseMiddleware(middleware ...func(http.Handler) http.Handler) {
 	api.middlewares = append(api.middlewares, middleware...)
 }
 
@@ -82,9 +91,9 @@ func (api *API) SetRedirectTrailingSlash(enabled bool) {
 // client provides an Accept header the server will respond using the client's
 // preferred content type, otherwise it will respond using whatever content
 // type the client provided in its Content-Type request header.
-func NewAPIWithMarshalling(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler) *API {
+func NewAPIWithMarshalling(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler, ctx context.Context) *API {
 	r := routing.NewHTTPRouter(prefix, NotAllowedHandler{marshalers: marshalers})
-	return newAPI(prefix, resolver, marshalers, r)
+	return newAPI(prefix, resolver, marshalers, r, nil)
 }
 
 // NewAPIWithBaseURL does the same as NewAPI with the addition of
@@ -103,8 +112,7 @@ func NewAPI(prefix string) *API {
 // NewAPIwithContext returns an initialized API instance with a context
 // `prefix` is added in front of all endpoints.
 func NewAPIWithContext(prefix string, ctx context.Context) *API {
-	newAPI := NewAPIWithMarshalers(prefix, "", DefaultContentMarshalers)
-	newAPI.Context = ctx
+	newAPI := NewAPIWithMarshalling(prefix, NewStaticResolver(""), DefaultContentMarshalers, ctx)
 	return newAPI
 }
 
@@ -128,11 +136,11 @@ func NewAPIWithContextAndRouting(prefix string, ctx context.Context, router rout
 //
 // if you have no specific marshalling needs, use `DefaultContentMarshalers`
 func NewAPIWithRouting(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler, router routing.Routeable) *API {
-	return newAPI(prefix, resolver, marshalers, router)
+	return newAPI(prefix, resolver, marshalers, router, nil)
 }
 
 // newAPI is now an internal method that can be changed if params are changing
-func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler, router routing.Routeable) *API {
+func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler, router routing.Routeable, ctx context.Context) *API {
 	if len(marshalers) == 0 {
 		panic("marshaler map must not be empty")
 	}
@@ -151,6 +159,7 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 		router:     router,
 		info:       info,
 		marshalers: marshalers,
+		Context:    ctx,
 	}
 
 	requestInfo := func(r *http.Request, api *API) Information {
@@ -165,12 +174,18 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 		return info
 	}
 
-	api.middlewares = append(api.middlewares, func(next xhandler.HandlerC) xhandler.HandlerC {
-		return xhandler.HandlerFuncC(func(c context.Context, w http.ResponseWriter, r *http.Request) {
+	api.middlewares = append(api.middlewares, func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var c context.Context
+			if api.Context != nil {
+				c = api.Context
+			} else {
+				c = r.Context()
+			}
 			c = context.WithValue(c, api_info, requestInfo(r, api))
 			c = context.WithValue(c, api_prefix, strings.Trim(api.info.prefix, "/"))
 			c = context.WithValue(c, api_api, api)
-			next.ServeHTTPC(c, w, r)
+			next.ServeHTTP(w, r.WithContext(c))
 		})
 	})
 	return api
@@ -180,5 +195,5 @@ func newAPI(prefix string, resolver URLResolver, marshalers map[string]ContentMa
 // use NewApiWithMarshalling instead
 func NewAPIWithMarshalers(prefix string, baseURL string, marshalers map[string]ContentMarshaler) *API {
 	staticResolver := NewStaticResolver(baseURL)
-	return NewAPIWithMarshalling(prefix, staticResolver, marshalers)
+	return NewAPIWithMarshalling(prefix, staticResolver, marshalers, nil)
 }

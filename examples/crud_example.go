@@ -79,7 +79,7 @@ func main() {
 	}
 
 	port := 31415
-	api := api2go.NewAPIWithMarshalling("v0", &resolver.RequestURL{Port: port}, marshalers)
+	api := api2go.NewAPIWithMarshalling("v0", &resolver.RequestURL{Port: port}, marshalers, nil)
 	userStorage := storage.NewUserStorage()
 	chocStorage := storage.NewChocolateStorage()
 	api.AddResource(model.User{}, resource.UserResource{ChocStorage: chocStorage, UserStorage: userStorage})

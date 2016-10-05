@@ -1,31 +1,31 @@
 package routing
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/rs/xhandler"
-	"github.com/rs/xmux"
-	"golang.org/x/net/context"
+	"github.com/dimfeld/httptreemux"
 )
 
 // HTTPRouter default router implementation for api2go
 type HTTPRouter struct {
-	router *xmux.Mux
+	router *httptreemux.TreeMux
+	group  *httptreemux.ContextGroup
 }
 
 // Handle each method like before and wrap them into julienschmidt handler func style
-func (h HTTPRouter) Handle(protocol, route string, handler HandlerFuncC) {
-	handlerFunc := (func(context.Context, http.ResponseWriter, *http.Request))(handler)
-	h.router.HandleC(protocol, route, xhandler.HandlerFuncC(handlerFunc))
+func (h HTTPRouter) Handle(protocol, route string, handler http.HandlerFunc) {
+	h.group.Handle(protocol, route, handler)
 }
 
 // Handler returns the router
-func (h HTTPRouter) Handler() xhandler.HandlerC {
+func (h HTTPRouter) Handler() http.Handler {
 	return h.router
 }
 
 func (h HTTPRouter) Param(ctx context.Context, name string) string {
-	return xmux.Param(ctx, name)
+	params := httptreemux.ContextParams(ctx)
+	return params[name]
 }
 
 func (h HTTPRouter) SetParam(ctx context.Context, name, value string) {
@@ -36,15 +36,16 @@ func (h HTTPRouter) SetParam(ctx context.Context, name, value string) {
 // the julienschmidt router.
 func (h HTTPRouter) SetRedirectTrailingSlash(enabled bool) {
 	h.router.RedirectTrailingSlash = enabled
+	h.router.RedirectBehavior = httptreemux.Redirect307
 }
 
 // NewHTTPRouter returns a new instance of julienschmidt/httprouter
 // this is the default router when using api2go
 func NewHTTPRouter(prefix string, notAllowedHandler http.Handler) Routeable {
-	router := xmux.New()
-	router.HandleMethodNotAllowed = true
-	router.MethodNotAllowed = xhandler.HandlerFuncC(func(_ context.Context, w http.ResponseWriter, r *http.Request) {
+	router := httptreemux.New()
+	router.MethodNotAllowedHandler = func(w http.ResponseWriter, r *http.Request, methods map[string]httptreemux.HandlerFunc) {
 		notAllowedHandler.ServeHTTP(w, r)
-	})
-	return &HTTPRouter{router: router}
+	}
+	group := router.UsingContext()
+	return &HTTPRouter{router: router, group: group}
 }
