@@ -2,7 +2,6 @@ package api2go
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -33,19 +32,7 @@ func (api API) SetRouter(router routing.Routeable) {
 
 // Handler returns the http.Handler instance for the API.
 func (api API) Handler() http.Handler {
-	if api.Context == nil {
-		api.Context = context.Background()
-	}
-	//return xhandler.New(api.Context, api.middlewares.HandlerC(api.router.Handler()))
-	//
-	return api.middlewares.HandlerF(func(w http.ResponseWriter, r *http.Request) {
-		c := r.Context()
-		fmt.Println("API.HANDLER.context->", c)
-		api.router.Handler().ServeHTTP(w, r)
-	})
-
-	//return api.middlewares.Handler(api.router.Handler())
-
+	return api.middlewares.Handler(api.router.Handler())
 }
 
 //Router returns the specified router on an api instance
