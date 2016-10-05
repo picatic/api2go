@@ -80,7 +80,7 @@ func (api *API) SetRedirectTrailingSlash(enabled bool) {
 // type the client provided in its Content-Type request header.
 func NewAPIWithMarshalling(prefix string, resolver URLResolver, marshalers map[string]ContentMarshaler, ctx context.Context) *API {
 	r := routing.NewHTTPRouter(prefix, NotAllowedHandler{marshalers: marshalers})
-	return newAPI(prefix, resolver, marshalers, r, nil)
+	return newAPI(prefix, resolver, marshalers, r, ctx)
 }
 
 // NewAPIWithBaseURL does the same as NewAPI with the addition of
