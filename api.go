@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/gddo/httputil"
+	"github.com/manyminds/api2go/httputil"
 	"github.com/manyminds/api2go/jsonapi"
 )
 
