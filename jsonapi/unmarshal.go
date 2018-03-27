@@ -306,8 +306,12 @@ func UnmarshalInto(input map[string]interface{}, targetStructType reflect.Type, 
 
 							if strings.HasPrefix(fieldSource, "null") || strings.HasPrefix(fieldSource, "Null") || strings.HasPrefix(fieldSource, "Zero") || strings.HasPrefix(fieldSource, "Time") {
 								field.Set(reflect.Zero(field.Type()))
+								if unmarshaler, ok := field.Addr().Interface().(json.Unmarshaler); ok {
+									if err := unmarshaler.UnmarshalJSON([]byte("null")); err != nil {
+										return err
+									}
+								}
 							}
-
 						}
 					}
 
